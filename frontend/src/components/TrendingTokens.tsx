@@ -184,7 +184,7 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img
-              src={SEPOLIA_TOKENS[2].logoURI}
+              src={SEPOLIA_TOKENS[1].logoURI}
               alt="MonoSwap"
               className="w-8 h-8 rounded-full"
             />
