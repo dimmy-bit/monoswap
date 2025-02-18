@@ -27,20 +27,26 @@ export default function TransactionHistory() {
 
   const formatAmount = (amount: string, symbol: string) => {
     try {
-      const value = parseFloat(amount);
-      if (isNaN(value)) return '0.00';
-      
-      // Format based on token type
-      if (symbol === 'ETH') {
-        return ethers.formatEther(amount).slice(0, 8);
+      // Handle ETH and other tokens differently
+      if (symbol === 'ETH' || symbol === 'WETH') {
+        const ethAmount = ethers.formatEther(amount);
+        return parseFloat(ethAmount).toLocaleString(undefined, {
+          minimumFractionDigits: 4,
+          maximumFractionDigits: 8
+        });
       } else {
+        // For USDT and USDC (6 decimals)
+        const value = symbol === 'USDT' || symbol === 'USDC' 
+          ? parseFloat(amount) / 1e6
+          : parseFloat(amount);
+        
         return value.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 6
         });
       }
     } catch (error) {
-      console.error('Error formatting amount:', error);
+      console.error('Error formatting amount:', error, { amount, symbol });
       return '0.00';
     }
   };
@@ -106,7 +112,38 @@ export default function TransactionHistory() {
             </div>
             {tx.status === 'completed' && (
               <div className="mt-2 text-xs text-gray-400">
-                Rate: 1 {tx.from.symbol} = {formatAmount((Number(tx.to.amount) / Number(tx.from.amount)).toString(), tx.to.symbol)} {tx.to.symbol}
+                Rate: 1 {tx.from.symbol} = {(() => {
+                  try {
+                    // Handle different token decimal cases
+                    let fromAmount = tx.from.amount;
+                    let toAmount = tx.to.amount;
+                    
+                    // Convert amounts based on token type
+                    if (tx.from.symbol === 'ETH' || tx.from.symbol === 'WETH') {
+                      fromAmount = ethers.formatEther(fromAmount);
+                    } else if (tx.from.symbol === 'USDT' || tx.from.symbol === 'USDC') {
+                      fromAmount = (Number(fromAmount) / 1e6).toString();
+                    }
+                    
+                    if (tx.to.symbol === 'ETH' || tx.to.symbol === 'WETH') {
+                      toAmount = ethers.formatEther(toAmount);
+                    } else if (tx.to.symbol === 'USDT' || tx.to.symbol === 'USDC') {
+                      toAmount = (Number(toAmount) / 1e6).toString();
+                    }
+                    
+                    // Calculate rate
+                    const rate = Number(toAmount) / Number(fromAmount);
+                    
+                    // Format the rate
+                    return rate.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 6
+                    });
+                  } catch (error) {
+                    console.error('Error calculating rate:', error);
+                    return '0.00';
+                  }
+                })()} {tx.to.symbol}
               </div>
             )}
             <div className="mt-2">
