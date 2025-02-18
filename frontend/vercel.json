@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "rm -rf .next && npm cache clean --force && npm ci && npm run build",
-  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_CRYPTOCOMPARE_API_KEY": "4c5162768f36a2390398f0a70e2128b496fd11899fc0c66881f06f4f19e759d1",
@@ -23,10 +23,5 @@
         }
       ]
     }
-  ],
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  }
+  ]
 } 
