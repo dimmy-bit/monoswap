@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import useTransactionStore from '../stores/transactionStore';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 export default function TransactionHistory() {
   const { transactions } = useTransactionStore();
@@ -13,6 +13,14 @@ export default function TransactionHistory() {
         return 'text-red-500';
       default:
         return 'text-yellow-500';
+    }
+  };
+
+  const formatTime = (timestamp: number) => {
+    try {
+      return formatDistanceToNowStrict(timestamp, { addSuffix: true });
+    } catch (error) {
+      return 'just now';
     }
   };
 
@@ -42,7 +50,7 @@ export default function TransactionHistory() {
     <div className="mt-8 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Transaction History</h2>
-        <span className="text-sm text-gray-400">Last 10 transactions</span>
+        <span className="text-sm text-gray-400">Last {transactions.length} transactions</span>
       </div>
       <div className="space-y-4">
         {transactions.map((tx) => (
@@ -54,7 +62,7 @@ export default function TransactionHistory() {
               <div>
                 <span className="text-sm font-medium">{getTransactionTypeLabel(tx.type)}</span>
                 <div className="text-sm text-gray-400 mt-1">
-                  {formatDistanceToNow(tx.timestamp, { addSuffix: true })}
+                  {formatTime(tx.timestamp)}
                 </div>
               </div>
               <span className={`text-sm font-medium ${getStatusColor(tx.status)}`}>

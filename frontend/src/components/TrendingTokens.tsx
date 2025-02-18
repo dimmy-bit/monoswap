@@ -184,7 +184,7 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img
-              src={SEPOLIA_TOKENS[1].logoURI}
+              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMiIgZmlsbD0iIzNiODJmNiIvPjxwYXRoIGQ9Ik04IDhoOHY4SDh6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg=="
               alt="MonoSwap"
               className="w-8 h-8 rounded-full"
             />

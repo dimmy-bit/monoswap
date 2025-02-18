@@ -8,7 +8,10 @@ const useTransactionStore = create<TransactionStore>()(
       transactions: [],
       addTransaction: (tx: Transaction) =>
         set((state) => ({
-          transactions: [tx, ...state.transactions].slice(0, 10), // Keep only last 10 transactions
+          transactions: [{
+            ...tx,
+            timestamp: tx.timestamp || Date.now()
+          }, ...state.transactions].slice(0, 10), // Keep only last 10 transactions
         })),
       updateTransaction: (hash: string, updates: Partial<Transaction>) =>
         set((state) => ({
