@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import useTransactionStore from '../stores/transactionStore';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { ethers } from 'ethers';
 
 export default function TransactionHistory() {
   const { transactions } = useTransactionStore();
@@ -21,6 +22,26 @@ export default function TransactionHistory() {
       return formatDistanceToNowStrict(timestamp, { addSuffix: true });
     } catch (error) {
       return 'just now';
+    }
+  };
+
+  const formatAmount = (amount: string, symbol: string) => {
+    try {
+      const value = parseFloat(amount);
+      if (isNaN(value)) return '0.00';
+      
+      // Format based on token type
+      if (symbol === 'ETH') {
+        return ethers.formatEther(amount).slice(0, 8);
+      } else {
+        return value.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 6
+        });
+      }
+    } catch (error) {
+      console.error('Error formatting amount:', error);
+      return '0.00';
     }
   };
 
@@ -72,17 +93,22 @@ export default function TransactionHistory() {
             <div className="flex items-center justify-between text-sm">
               <div>
                 <span className="text-gray-400">From: </span>
-                <span>
-                  {tx.from.amount} {tx.from.symbol}
+                <span className="font-medium">
+                  {formatAmount(tx.from.amount, tx.from.symbol)} {tx.from.symbol}
                 </span>
               </div>
               <div>
                 <span className="text-gray-400">To: </span>
-                <span>
-                  {tx.to.amount} {tx.to.symbol}
+                <span className="font-medium">
+                  {formatAmount(tx.to.amount, tx.to.symbol)} {tx.to.symbol}
                 </span>
               </div>
             </div>
+            {tx.status === 'completed' && (
+              <div className="mt-2 text-xs text-gray-400">
+                Rate: 1 {tx.from.symbol} = {formatAmount((Number(tx.to.amount) / Number(tx.from.amount)).toString(), tx.to.symbol)} {tx.to.symbol}
+              </div>
+            )}
             <div className="mt-2">
               <a
                 href={`https://sepolia.etherscan.io/tx/${tx.hash}`}
