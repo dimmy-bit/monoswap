@@ -150,15 +150,19 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
         const symbols = SEPOLIA_TOKENS.map(token => token.symbol);
         const prices = await getTokenPrices(symbols);
         
-        const tokenTrends = SEPOLIA_TOKENS.map(token => ({
-          token,
-          price: prices[token.symbol] || 0,
-          priceChange: ((prices[token.symbol] || 0) - (token.lastPrice || 0)) / (token.lastPrice || 1) * 100,
-        }));
+        const tokenTrends = SEPOLIA_TOKENS.map(token => {
+          const currentPrice = prices[token.symbol] || 0;
+          const lastPrice = token.lastPrice || currentPrice;
+          return {
+            token,
+            price: currentPrice,
+            priceChange: lastPrice ? ((currentPrice - lastPrice) / lastPrice * 100) : 0
+          };
+        });
 
         // Update last prices
         SEPOLIA_TOKENS.forEach((token, index) => {
-          token.lastPrice = prices[token.symbol] || 0;
+          token.lastPrice = prices[token.symbol] || token.lastPrice || 0;
         });
 
         setTrendingTokens(tokenTrends);

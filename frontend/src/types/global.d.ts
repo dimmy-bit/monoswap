@@ -15,6 +15,7 @@ interface Token {
   decimals: number;
   name: string;
   logoURI?: string;
+  lastPrice?: number;
 }
 
 interface TokenBalance {
