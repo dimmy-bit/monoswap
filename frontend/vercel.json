@@ -1,19 +1,32 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_CRYPTOCOMPARE_API_KEY": "4c5162768f36a2390398f0a70e2128b496fd11899fc0c66881f06f4f19e759d1",
     "NEXT_PUBLIC_ALCHEMY_API_KEY": "JkwlX2jl-1k1wTZQPFHuC-YYuLcoldZk",
     "NEXT_PUBLIC_SEPOLIA_RPC_URL": "https://eth-sepolia.g.alchemy.com/v2/JkwlX2jl-1k1wTZQPFHuC-YYuLcoldZk",
-    "NEXT_PUBLIC_FACTORY_ADDRESS": "0x6f9DCBC043944a1030202936B90E3F71871d5Be9",
-    "NEXT_PUBLIC_ROUTER_ADDRESS": "0x3D924222C88810FD1B723Ca853eb3ED77c62CCCf",
-    "NEXT_PUBLIC_WETH_ADDRESS": "0x49ABcb37bad7787178eE82d57aca11c849AfAA78",
-    "NEXT_PUBLIC_MONO_TOKEN_ADDRESS": "0x24776FD1315302B7B7DDA793e4c08A21b86450D0",
+    "NEXT_PUBLIC_FACTORY_ADDRESS": "0x2EB33f94744306937B29829382cfB4dF48188703",
+    "NEXT_PUBLIC_ROUTER_ADDRESS": "0x755935B6e58872A57F3739e5ef9d6c3170BF72f2",
+    "NEXT_PUBLIC_WETH_ADDRESS": "0x2C114bd973BcB959E63842Cd6F6d80152B59faeE",
+    "NEXT_PUBLIC_MONO_TOKEN_ADDRESS": "0x94D6f7D87a773761cCbA51eAdd23A2F57856BeC9",
     "NEXT_PUBLIC_CHAIN_ID": "11155111"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
   }
 } 
