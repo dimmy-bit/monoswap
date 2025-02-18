@@ -8,6 +8,7 @@ import { getTokenPrices } from '../utils/priceUtils';
 import { CONTRACT_ADDRESSES, ROUTER_ABI, FACTORY_ABI, PAIR_ABI } from '../config/contracts';
 import TransactionHistory from '../components/TransactionHistory';
 import useTransactionStore from '../stores/transactionStore';
+import { Transaction } from '../types/transaction';
 import TradingViewChart from '../components/TradingViewChart';
 import TrendingTokens from '../components/TrendingTokens';
 import { toast } from 'react-hot-toast';
@@ -251,6 +252,31 @@ export default function Home() {
     };
   }, []);
 
+  const handleApproval = async (tokenAddress: string, amount: bigint) => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+      
+      console.log('Checking allowance...');
+      const currentAllowance = await token.allowance(signer.address, CONTRACT_ADDRESSES.ROUTER);
+      
+      if (currentAllowance < amount) {
+        console.log('Approving tokens...');
+        const tx = await token.approve(CONTRACT_ADDRESSES.ROUTER, amount);
+        console.log('Approval transaction sent:', tx.hash);
+        await tx.wait();
+        console.log('Approval confirmed');
+      } else {
+        console.log('Sufficient allowance exists');
+      }
+      return true;
+    } catch (err) {
+      console.error('Approval error:', err);
+      throw new Error('Failed to approve token');
+    }
+  };
+
   const handleSwap = async () => {
     if (!amountFrom || !amountTo || !isConnected) {
       toast.error('Please connect wallet and enter amounts');
@@ -261,151 +287,37 @@ export default function Home() {
       setIsLoading(true);
       setError(null);
 
-      // Verify network is Sepolia
-      if (!window.ethereum) {
-        throw new Error('MetaMask is not installed');
-      }
-
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
-      const chainId = network.chainId;
       
-      if (chainId.toString() !== '11155111') {
+      if (network.chainId.toString() !== '11155111') {
         await switchToSepolia();
         return;
       }
 
       const signer = await provider.getSigner();
       const router = new ethers.Contract(CONTRACT_ADDRESSES.ROUTER, ROUTER_ABI, signer);
-
+      
       // Calculate amounts with proper decimals
       const amountInWei = ethers.parseUnits(amountFrom, selectedTokenFrom.decimals || 18);
       const amountOutMinWei = ethers.parseUnits(amountTo, selectedTokenTo.decimals || 18);
       const slippage = 0.05; // 5% slippage
-      const amountOutMin = (amountOutMinWei * BigInt(95)) / BigInt(100); // Apply 5% slippage
+      const amountOutMin = (amountOutMinWei * BigInt(95)) / BigInt(100);
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
 
-      let tx;
-      const baseGasLimit = 500000;
-      const approvalGasLimit = 100000;
-
-      // Get initial gas price
-      const gasPrice = await provider.getFeeData();
-      const maxFeePerGas = gasPrice.maxFeePerGas || gasPrice.gasPrice;
-
-      // Handle ETH to Token swap
+      // Construct the swap path
+      let path: string[];
       if (selectedTokenFrom.symbol === 'ETH') {
-        console.log('Preparing ETH to Token swap...');
-        
-        // Verify ETH balance including gas cost
-        const ethBalance = await provider.getBalance(signer.address);
-        const estimatedGasCost = maxFeePerGas ? maxFeePerGas * BigInt(baseGasLimit) : BigInt(0);
-        if (ethBalance < amountInWei + estimatedGasCost) {
-          throw new Error('Insufficient ETH balance (including gas cost)');
-        }
-
-        // Execute the swap
-        tx = await router.swapExactETHForTokens(
-          amountOutMin,
-          [CONTRACT_ADDRESSES.WETH, selectedTokenTo.address],
-          signer.address,
-          deadline,
-          { 
-            value: amountInWei,
-            gasLimit: baseGasLimit
-          }
-        );
-      } 
-      // Handle Token to ETH swap
-      else if (selectedTokenTo.symbol === 'ETH') {
-        console.log('Preparing Token to ETH swap...');
-        
-        // First approve the router to spend tokens
-        const tokenContract = new ethers.Contract(
-          selectedTokenFrom.address,
-          ERC20_ABI,
-          signer
-        );
-
-        // Check token balance
-        const tokenBalance = await tokenContract.balanceOf(signer.address);
-        if (tokenBalance < amountInWei) {
-          throw new Error('Insufficient token balance');
-        }
-
-        // Check allowance and approve if needed
-        const allowance = await tokenContract.allowance(signer.address, CONTRACT_ADDRESSES.ROUTER);
-        if (allowance < amountInWei) {
-          console.log('Approving tokens...');
-          const approveTx = await tokenContract.approve(
-            CONTRACT_ADDRESSES.ROUTER,
-            ethers.MaxUint256,
-            { gasLimit: approvalGasLimit }
-          );
-          console.log('Waiting for approval...');
-          await approveTx.wait();
-          console.log('Tokens approved');
-        }
-
-        // Execute the swap
-        tx = await router.swapExactTokensForETH(
-          amountInWei,
-          amountOutMin,
-          [selectedTokenFrom.address, CONTRACT_ADDRESSES.WETH],
-          signer.address,
-          deadline,
-          { gasLimit: baseGasLimit }
-        );
-      } 
-      // Handle Token to Token swap
-      else {
-        console.log('Preparing Token to Token swap...');
-        
-        // First approve the router to spend tokens
-        const tokenContract = new ethers.Contract(
-          selectedTokenFrom.address,
-          ERC20_ABI,
-          signer
-        );
-
-        // Check token balance
-        const tokenBalance = await tokenContract.balanceOf(signer.address);
-        if (tokenBalance < amountInWei) {
-          throw new Error('Insufficient token balance');
-        }
-
-        // Check allowance and approve if needed
-        const allowance = await tokenContract.allowance(signer.address, CONTRACT_ADDRESSES.ROUTER);
-        if (allowance < amountInWei) {
-          console.log('Approving tokens...');
-          const approveTx = await tokenContract.approve(
-            CONTRACT_ADDRESSES.ROUTER,
-            ethers.MaxUint256,
-            { gasLimit: approvalGasLimit }
-          );
-          console.log('Waiting for approval...');
-          await approveTx.wait();
-          console.log('Tokens approved');
-        }
-
-        // Execute the swap through WETH path
-        const path = [selectedTokenFrom.address, CONTRACT_ADDRESSES.WETH, selectedTokenTo.address];
-        tx = await router.swapExactTokensForTokens(
-          amountInWei,
-          amountOutMin,
-          path,
-          signer.address,
-          deadline,
-          { gasLimit: baseGasLimit }
-        );
+        path = [CONTRACT_ADDRESSES.WETH, selectedTokenTo.address];
+      } else if (selectedTokenTo.symbol === 'ETH') {
+        path = [selectedTokenFrom.address, CONTRACT_ADDRESSES.WETH];
+      } else {
+        path = [selectedTokenFrom.address, CONTRACT_ADDRESSES.WETH, selectedTokenTo.address];
       }
 
-      // Add transaction to history
-      const txHash = tx.hash;
-      console.log('Transaction hash:', txHash);
-      
-      addTransaction({
-        hash: txHash,
+      // Add pending transaction immediately
+      const pendingTx: Transaction = {
+        hash: 'pending',
         type: 'SWAP',
         timestamp: Date.now(),
         status: 'pending',
@@ -417,15 +329,60 @@ export default function Home() {
           symbol: selectedTokenTo.symbol,
           amount: amountTo
         }
+      };
+      addTransaction(pendingTx);
+
+      let tx;
+      const baseGasLimit = 300000; // Reduced from 500000 for optimization
+
+      // Handle ETH to Token swap
+      if (selectedTokenFrom.symbol === 'ETH') {
+        tx = await router.swapExactETHForTokens(
+          amountOutMin,
+          path,
+          signer.address,
+          deadline,
+          { 
+            value: amountInWei,
+            gasLimit: baseGasLimit
+          }
+        );
+      } 
+      // Handle Token to ETH swap
+      else if (selectedTokenTo.symbol === 'ETH') {
+        await handleApproval(selectedTokenFrom.address, amountInWei);
+        tx = await router.swapExactTokensForETH(
+          amountInWei,
+          amountOutMin,
+          path,
+          signer.address,
+          deadline,
+          { gasLimit: baseGasLimit }
+        );
+      }
+      // Handle Token to Token swap
+      else {
+        await handleApproval(selectedTokenFrom.address, amountInWei);
+        tx = await router.swapExactTokensForTokens(
+          amountInWei,
+          amountOutMin,
+          path,
+          signer.address,
+          deadline,
+          { gasLimit: baseGasLimit }
+        );
+      }
+
+      // Update transaction with actual hash
+      updateTransaction('pending', {
+        hash: tx.hash,
+        status: 'pending'
       });
 
-      // Wait for transaction confirmation
-      console.log('Waiting for transaction confirmation...');
       await tx.wait();
-      console.log('Transaction confirmed');
       
       // Update transaction status and UI
-      updateTransaction(txHash, { status: 'completed' });
+      updateTransaction(tx.hash, { status: 'completed' });
       await fetchBalances(account);
       toast.success('Swap completed successfully!');
       
@@ -441,22 +398,18 @@ export default function Home() {
         errorMessage = 'Please approve token spending first';
       } else if (err.message.includes('insufficient balance')) {
         errorMessage = 'Insufficient balance for swap';
-      } else if (err.message.includes('EXPIRED')) {
-        errorMessage = 'Transaction deadline expired';
-      } else if (err.message.includes('MetaMask is not installed')) {
-        errorMessage = 'Please install MetaMask';
       } else if (err.code === 'ACTION_REJECTED') {
-        errorMessage = 'Transaction rejected by user';
-      } else if (err.message.includes('user rejected transaction')) {
         errorMessage = 'Transaction rejected by user';
       }
       
       setError(errorMessage);
       toast.error(errorMessage);
 
-      if (err.transaction?.hash) {
-        updateTransaction(err.transaction.hash, { status: 'failed' });
-      }
+      // Update pending transaction as failed
+      updateTransaction('pending', {
+        status: 'failed',
+        hash: err.transaction?.hash || 'failed'
+      });
     } finally {
       setIsLoading(false);
     }
