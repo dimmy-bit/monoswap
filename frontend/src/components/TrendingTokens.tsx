@@ -21,6 +21,7 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
   const [isConnecting, setIsConnecting] = useState(false);
   const [localIsConnected, setLocalIsConnected] = useState(parentIsConnected);
   const [showDisconnectMenu, setShowDisconnectMenu] = useState(false);
+  const [lastPrices, setLastPrices] = useState<{[key: string]: number}>({});
 
   useEffect(() => {
     setLocalIsConnected(parentIsConnected);
@@ -152,19 +153,16 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
         
         const tokenTrends = SEPOLIA_TOKENS.map(token => {
           const currentPrice = prices[token.symbol] || 0;
-          const lastPrice = token.lastPrice || currentPrice;
+          const previousPrice = lastPrices[token.symbol] || currentPrice;
           return {
             token,
             price: currentPrice,
-            priceChange: lastPrice ? ((currentPrice - lastPrice) / lastPrice * 100) : 0
+            priceChange: previousPrice ? ((currentPrice - previousPrice) / previousPrice * 100) : 0
           };
         });
 
         // Update last prices
-        SEPOLIA_TOKENS.forEach((token, index) => {
-          token.lastPrice = prices[token.symbol] || token.lastPrice || 0;
-        });
-
+        setLastPrices(prices);
         setTrendingTokens(tokenTrends);
       } catch (error) {
         console.error('Error fetching token data:', error);
@@ -178,7 +176,7 @@ export default function TrendingTokens({ isConnected: parentIsConnected, account
     const interval = setInterval(fetchTokenData, 15000); // Update every 15 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastPrices]);
 
   return (
     <nav className="border-b border-gray-800 p-4 backdrop-blur-md bg-black/30">
