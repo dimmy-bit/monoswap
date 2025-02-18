@@ -1,7 +1,8 @@
-<<<<<<< HEAD
 # MonoSwap DEX
 
 A decentralized exchange (DEX) built on the Sepolia testnet, allowing users to swap ETH and various ERC20 tokens.
+
+🌐 **Live Website**: [https://monoswap-git-main-dimmy-bits-projects.vercel.app/](https://monoswap-git-main-dimmy-bits-projects.vercel.app/)
 
 ## Features
 
@@ -96,6 +97,3 @@ The application is deployed on Vercel. To deploy your own instance:
 ## License
 
 This project is licensed under the MIT License.
-=======
-# monoswap
->>>>>>> b837f24b033c0701a57951cfe12504735f53f381
